@@ -1,0 +1,81 @@
+// Nova AI Platform - Prisma schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  name      String?
+  avatar    String?
+  bio       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  chats     Chat[]
+  files     File[]
+  settings  Settings?
+}
+
+model Chat {
+  id        String    @id @default(cuid())
+  userId    String
+  title     String
+  pinned    Boolean   @default(false)
+  archived  Boolean   @default(false)
+  model     String    @default("gemini-2.5-flash")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+
+  @@index([userId])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  chatId     String
+  role       String   // "user" | "assistant" | "system"
+  content    String
+  tokenCount Int      @default(0)
+  attachments String? // JSON string of file metadata
+  createdAt  DateTime @default(now())
+  chat       Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId])
+}
+
+model File {
+  id          String   @id @default(cuid())
+  userId      String
+  fileName    String
+  storagePath String
+  mimeType    String
+  fileSize    Int
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Settings {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  theme           String   @default("system") // light | dark | system
+  language        String   @default("en")
+  temperature     Float    @default(0.7)
+  topP            Float    @default(0.9)
+  maxTokens       Int      @default(4096)
+  systemPrompt    String   @default("")
+  streamingMode   Boolean  @default(true)
+  notifications   Boolean  @default(true)
+  soundEnabled    Boolean  @default(false)
+  sendOnEnter     Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
